@@ -1,5 +1,5 @@
 import savedJobRepository from "../repositories/savedJobRepository.js";
-
+import savedJobService from "../services/savedJobService.js";
 const saveJob = async (req, res, next) => {
   try {
     const { jobId } = req.params;

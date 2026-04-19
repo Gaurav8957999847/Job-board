@@ -1,239 +1,214 @@
-# Job Board API
+<div align="center">
+  <img src="banner.png" alt="Job Board API Banner" width="100%">
+  
+  # 🚀 Job Board API
+  
+  ### *A Robust, Scalable, and Professional RESTful API for Modern Job Platforms*
+  
+  [![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+  [![Express.js](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
+  [![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+  [![JWT](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)](https://jwt.io/)
+  [![License](https://img.shields.io/badge/License-ISC-blue?style=for-the-badge)](https://opensource.org/licenses/ISC)
 
-A REST API for a job-board platform where:
-- users can register/login and browse jobs
-- employers can register, create a company profile, and manage job posts
+</div>
 
-Built with Express, MongoDB, and JWT authentication.
+---
 
-## Table of Contents
+## 📖 Introduction
 
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Quick Start](#quick-start)
-- [Environment Variables](#environment-variables)
-- [Run Commands](#run-commands)
-- [API Overview](#api-overview)
-- [Endpoint Reference](#endpoint-reference)
-- [Request Examples](#request-examples)
-- [Project Structure](#project-structure)
-- [Security](#security)
-- [Known Gaps](#known-gaps)
-- [Git Ignore and Push](#git-ignore-and-push)
+The **Job Board API** is a comprehensive backend solution designed to handle the complexities of a modern job marketplace. Whether you're a developer building a job search portal or an organization looking to manage internal hiring, this API provides the foundation you need.
 
-## Features
+It features a dual-role system (User/Employer), secure JWT authentication, advanced job filtering, resume upload capabilities, and a personalized experience for both job seekers and recruiters.
 
-- JWT-based authentication (`register`, `login`, `me`)
-- Role-based authorization (`employer`-only job management)
-- Employer-company linkage at registration
-- Public job discovery with filters, sorting, and pagination
-- Centralized error handling middleware
-- Basic API hardening with Helmet, CORS, and rate limiting
+---
 
-## Tech Stack
+## ✨ Key Features
 
-- Node.js
-- Express 5
-- MongoDB + Mongoose
-- JWT (`jsonwebtoken`)
-- Password hashing (`bcryptjs`)
-- Security middleware (`helmet`, `cors`, `express-rate-limit`)
+- **🔐 Secure Authentication**: JWT-based authentication with password hashing using Bcrypt.
+- **👥 Dual Roles**: Dedicated functionalities for **Job Seekers** and **Employers**.
+- **💼 Job Management**: Full CRUD operations for employers to manage their job postings.
+- **🔍 Advanced Search**: Filter jobs by location, salary range, job type, experience level, and skills.
+- **📄 Application System**: Multi-part form handling for resume uploads (PDF/Docs).
+- **💾 Saved Jobs**: Ability for users to save jobs for later reference.
+- **🛡️ API Hardening**: Security features including Helmet, CORS, and Rate Limiting to prevent DDoS and common attacks.
+- **🏗️ Clean Architecture**: Implemented using MVC and Repository patterns for high maintainability.
 
-## Quick Start
+---
 
-```bash
-npm install
-```
+## 🛠️ Tech Stack
 
-Create `.env` in the root:
+- **Runtime**: [Node.js](https://nodejs.org/)
+- **Framework**: [Express.js 5.x](https://expressjs.com/)
+- **Database**: [MongoDB](https://www.mongodb.com/) (with [Mongoose](https://mongoosejs.com/))
+- **Auth**: [JSON Web Tokens (JWT)](https://jwt.io/) & [Bcrypt.js](https://github.com/dcodeIO/bcrypt.js)
+- **File Uploads**: [Multer](https://github.com/expressjs/multer)
+- **Security**: [Helmet](https://helmetjs.github.io/), [CORS](https://github.com/expressjs/cors), [Express Rate Limit](https://github.com/n67/express-rate-limit)
 
-```env
-PORT=5000
-MONGO_URL=mongodb+srv://<username>:<password>@<cluster>/<database>?retryWrites=true&w=majority
-JWT_SECRET=replace_with_a_long_random_secret
-```
+---
 
-Run:
-
-```bash
-npm run dev
-```
-
-API will be available at:
-
-```text
-http://localhost:5000
-```
-
-## Environment Variables
-
-| Variable | Required | Description |
-|---|---|---|
-| `PORT` | No | Server port (default: `5000`) |
-| `MONGO_URL` | Yes | MongoDB connection string |
-| `JWT_SECRET` | Yes | Secret used to sign JWT tokens |
-
-## Run Commands
-
-| Command | Description |
-|---|---|
-| `npm run dev` | Start dev server with nodemon |
-| `npm start` | Start server with Node.js |
-
-## API Overview
-
-- Base URL: `http://localhost:5000/api`
-- Root health route: `GET /`
-- Protected endpoints require header:
-
-```http
-Authorization: Bearer <token>
-```
-
-### Roles
-
-- `user`: can authenticate and browse jobs
-- `employer`: can authenticate and create/manage own jobs
-- `admin`: defined in user model but no admin-only routes implemented yet
-
-## Endpoint Reference
-
-### Auth (`/api/auth`)
-
-| Method | Route | Access | Purpose |
-|---|---|---|---|
-| `POST` | `/register` | Public | Register user/employer |
-| `POST` | `/login` | Public | Login and get JWT |
-| `GET` | `/me` | Protected | Get current token user |
-
-#### Register request notes
-
-- Required: `name`, `email`, `password`
-- Optional: `role` (`user` or `employer`)
-- If `role` is `employer`, `companyName` is required
-- Optional employer fields: `description`, `website`, `location`
-
-### Jobs (`/api/jobs`)
-
-| Method | Route | Access | Purpose |
-|---|---|---|---|
-| `GET` | `/` | Public | Search/list jobs |
-| `POST` | `/` | Protected (`employer`) | Create a job |
-| `GET` | `/my-jobs` | Protected (`employer`) | List current employer jobs |
-| `PUT` | `/:id` | Protected (`employer`) | Update own job |
-| `DELETE` | `/:id` | Protected (`employer`) | Delete own job |
-
-#### Search query params (`GET /api/jobs`)
-
-| Query Param | Type | Notes |
-|---|---|---|
-| `search` | string | Text search on `title` and `description` |
-| `location` | string | Case-insensitive partial match |
-| `minSalary` | number | Filters on `salary.min >= minSalary` |
-| `maxSalary` | number | Filters on `salary.min <= maxSalary` |
-| `skills` | string | Comma-separated list, e.g. `Node.js,MongoDB` |
-| `experienceLevel` | enum | `entry`, `mid`, `senior` |
-| `jobType` | enum | `full-time`, `part-time`, `contract`, `internship` |
-| `page` | number | Default `1` |
-| `limit` | number | Default `10` |
-| `sortBy` | string | `salary` or default latest (`createdAt`) |
-
-## Request Examples
-
-### Register Employer
-
-```bash
-curl -X POST http://localhost:5000/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Jane Employer",
-    "email": "jane@example.com",
-    "password": "password123",
-    "role": "employer",
-    "companyName": "Acme Corp",
-    "description": "Hiring great developers",
-    "website": "https://acme.example",
-    "location": "Remote"
-  }'
-```
-
-### Login
-
-```bash
-curl -X POST http://localhost:5000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "jane@example.com",
-    "password": "password123"
-  }'
-```
-
-### Create Job (Employer)
-
-```bash
-curl -X POST http://localhost:5000/api/jobs \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <token>" \
-  -d '{
-    "title": "Backend Developer",
-    "description": "Build scalable APIs",
-    "location": "Bangalore",
-    "salary": { "min": 800000, "max": 1400000, "currency": "INR" },
-    "skills": ["Node.js", "MongoDB", "REST"],
-    "experienceLevel": "mid",
-    "jobType": "full-time"
-  }'
-```
-
-### Search Jobs
-
-```bash
-curl "http://localhost:5000/api/jobs?search=node&location=remote&skills=Node.js,MongoDB&page=1&limit=10&sortBy=salary"
-```
-
-## Project Structure
+## 📂 Project Structure
 
 ```text
 .
-├── server.js
-├── src
-│   ├── config/          # database connection
-│   ├── controllers/     # route handlers
-│   ├── middlewares/     # auth + global error handler
-│   ├── models/          # mongoose schemas
-│   ├── repositories/    # DB access layer
-│   ├── routes/          # express routes
-│   └── services/        # business logic
-└── package.json
+├── src/
+│   ├── config/          # ⚙️ Database and Environment configurations
+│   ├── controllers/     # 🕹️ Logic for handling requests
+│   ├── middlewares/     # 🛡️ Auth, Error Handling, and Security
+│   ├── models/          # 📊 Mongoose Schemas (User, Job, Company, Application, SavedJobs)
+│   ├── repositories/    # 🗄️ Database Access Layer (Abstracting Mongoose)
+│   ├── routes/          # 🛣️ API Endpoints definitions
+│   ├── services/        # 🧠 Business Logic implementation
+│   └── utils/           # 🧰 Helper functions and Constants
+├── uploads/             # 📁 Storage for uploaded resumes
+├── server.js            # 🚀 Application Entry Point
+└── .env                 # 🔑 Environment Variables (Secret)
 ```
 
-## Security
+---
 
-- `helmet()` for secure HTTP headers
-- `cors()` enabled
-- rate limit on `/api/*`:
-  - 100 requests per 15 minutes per IP
-- hashed passwords with `bcryptjs`
+## 🚀 Getting Started
 
-## Known Gaps
+### Prerequisites
 
-- `Application` model exists but no application routes/controllers yet
-- no test suite configured yet
-- no API docs generator (Swagger/OpenAPI) yet
+- [Node.js](https://nodejs.org/) (v14+)
+- [MongoDB](https://www.mongodb.com/) (Local or Atlas)
 
-## Git Ignore and Push
+### Installation
 
-`.gitignore` should include:
+1. **Clone the repository**
+   ```bash
+   git clone <your-repo-url>
+   cd job-board-api
+   ```
 
-```gitignore
-node_modules/
-.env
-```
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-If these were already committed once, untrack them before push:
+3. **Set up Environment Variables**
+   Create a `.env` file in the root directory and add the following:
+   ```env
+   PORT=5000
+   MONGO_URL=your_mongodb_connection_string
+   JWT_SECRET=your_super_secret_key
+   ```
 
+4. **Run the application**
+   ```bash
+   # Development mode (with nodemon)
+   npm run dev
+
+   # Production mode
+   npm start
+   ```
+
+---
+
+## 📡 API Reference
+
+### 1. Authentication (`/api/auth`)
+
+| Endpoint | Method | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `/register` | `POST` | Public | Register as a User or Employer |
+| `/login` | `POST` | Public | Login and receive a JWT |
+| `/me` | `GET` | Private | Get profile details of logged-in user |
+
+#### Register Example:
 ```bash
-git rm -r --cached node_modules .env
-git commit -m "chore: stop tracking local-only files"
+curl -X POST http://localhost:5000/api/auth/register \
+-H "Content-Type: application/json" \
+-d '{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "securepassword",
+  "role": "employer",
+  "companyName": "Tech Solutions Inc.",
+  "location": "Remote"
+}'
 ```
 
+---
+
+### 2. Jobs (`/api/jobs`)
+
+| Endpoint | Method | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `/` | `GET` | Public | List all jobs (with filters & search) |
+| `/` | `POST` | Private (Emp) | Create a new job posting |
+| `/:id` | `PUT` | Private (Emp) | Update a job posting |
+| `/:id` | `DELETE` | Private (Emp) | Delete a job posting |
+| `/my-jobs` | `GET` | Private (Emp) | Get all jobs posted by the employer |
+
+#### Search Query Parameters:
+- `search`: Keyword search in title/description.
+- `location`: Filter by location.
+- `minSalary` / `maxSalary`: Salary range filtering.
+- `jobType`: `full-time`, `part-time`, `contract`, `internship`.
+- `experienceLevel`: `entry`, `mid`, `senior`.
+
+---
+
+### 3. Applications & Interactions
+
+| Endpoint | Method | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `/:jobId/apply` | `POST` | Private (User) | Apply to a job (Requires resume upload) |
+| `/my-applications` | `GET` | Private (User) | View all your submitted applications |
+| `/:jobId/applications` | `GET` | Private (Emp) | View all applicants for a specific job |
+| `/:jobId/save` | `POST` | Private (User) | Save a job for later |
+| `/saved` | `GET` | Private (User) | View your saved jobs list |
+
+#### Apply to Job Example:
+```bash
+curl -X POST http://localhost:5000/api/jobs/65f.../apply \
+-H "Authorization: Bearer <your_token>" \
+-F "resume=@/path/to/your/resume.pdf" \
+-F "coverLetter=I am excited to apply for this role!"
+```
+
+---
+
+## 🛡️ Security Implementation
+
+- **Helmet**: Protects from well-known web vulnerabilities by setting HTTP headers appropriately.
+- **Rate Limiting**: Prevents brute-force and DDoS attacks (100 requests per 15 minutes per IP).
+- **CORS**: Configured to control cross-origin resource sharing.
+- **JWT Authorization**: All private routes are guarded by a middleware that verifies the token.
+- **Role-Based Access Control (RBAC)**: Ensuring only employers can manage jobs and only users can apply.
+
+---
+
+## 🔮 Future Roadmap
+
+- [ ] **Cloudinary Integration**: For cloud-based resume storage.
+- [ ] **Email Notifications**: Send alerts on application status changes.
+- [ ] **Admin Dashboard**: Advanced management features for administrators.
+- [ ] **Unit & Integration Tests**: Comprehensive testing suite.
+- [ ] **Swagger Documentation**: Interactive API documentation.
+
+---
+
+## 🤝 Contributing
+
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+Distributed under the ISC License. See `LICENSE` for more information.
+
+---
+
+<div align="center">
+  Developed with ❤️ by [Your Name/Github]
+</div>
