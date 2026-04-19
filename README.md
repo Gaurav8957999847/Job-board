@@ -1,183 +1,144 @@
 # Job Board API
 
-Backend API for a job board platform built with Node.js, Express, and MongoDB.
+A REST API for a job-board platform where:
+- users can register/login and browse jobs
+- employers can register, create a company profile, and manage job posts
 
-It supports:
-- User and employer authentication with JWT
-- Employer company profile creation during registration
-- Job posting management for employers
-- Public job search with filtering, sorting, and pagination
-- Security middlewares (Helmet, CORS, rate limiting)
+Built with Express, MongoDB, and JWT authentication.
+
+## Table of Contents
+
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Quick Start](#quick-start)
+- [Environment Variables](#environment-variables)
+- [Run Commands](#run-commands)
+- [API Overview](#api-overview)
+- [Endpoint Reference](#endpoint-reference)
+- [Request Examples](#request-examples)
+- [Project Structure](#project-structure)
+- [Security](#security)
+- [Known Gaps](#known-gaps)
+- [Git Ignore and Push](#git-ignore-and-push)
+
+## Features
+
+- JWT-based authentication (`register`, `login`, `me`)
+- Role-based authorization (`employer`-only job management)
+- Employer-company linkage at registration
+- Public job discovery with filters, sorting, and pagination
+- Centralized error handling middleware
+- Basic API hardening with Helmet, CORS, and rate limiting
 
 ## Tech Stack
 
-- Node.js + Express (`type: module`)
+- Node.js
+- Express 5
 - MongoDB + Mongoose
-- JWT (`jsonwebtoken`) for auth
-- `bcryptjs` for password hashing
-- `helmet`, `cors`, `express-rate-limit` for security
-- `dotenv` for environment configuration
+- JWT (`jsonwebtoken`)
+- Password hashing (`bcryptjs`)
+- Security middleware (`helmet`, `cors`, `express-rate-limit`)
 
-## Project Structure
-
-```text
-.
-├── server.js
-├── src
-│   ├── config
-│   │   └── db.js
-│   ├── controllers
-│   │   ├── authController.js
-│   │   └── jobController.js
-│   ├── middlewares
-│   │   ├── authMiddleware.js
-│   │   └── errorHandler.js
-│   ├── models
-│   │   ├── user.js
-│   │   ├── Company.js
-│   │   ├── Job.js
-│   │   └── Application.js
-│   ├── repositories
-│   │   ├── userRepository.js
-│   │   ├── companyRepository.js
-│   │   └── jobRepository.js
-│   ├── routes
-│   │   ├── authRoutes.js
-│   │   └── jobRoutes.js
-│   └── services
-│       ├── authService.js
-│       └── jobService.js
-└── package.json
-```
-
-## Getting Started
-
-### 1) Install dependencies
+## Quick Start
 
 ```bash
 npm install
 ```
 
-### 2) Create environment variables
-
-Create a `.env` file in the project root:
+Create `.env` in the root:
 
 ```env
 PORT=5000
-MONGO_URL=mongodb+srv://<username>:<password>@<cluster>/<db>?retryWrites=true&w=majority
-JWT_SECRET=replace_with_a_strong_secret
+MONGO_URL=mongodb+srv://<username>:<password>@<cluster>/<database>?retryWrites=true&w=majority
+JWT_SECRET=replace_with_a_long_random_secret
 ```
 
-### 3) Run the server
-
-Development:
+Run:
 
 ```bash
 npm run dev
 ```
 
-Production:
-
-```bash
-npm start
-```
-
-Server default URL:
+API will be available at:
 
 ```text
 http://localhost:5000
 ```
 
-## API Base URL
+## Environment Variables
 
-```text
-http://localhost:5000/api
-```
+| Variable | Required | Description |
+|---|---|---|
+| `PORT` | No | Server port (default: `5000`) |
+| `MONGO_URL` | Yes | MongoDB connection string |
+| `JWT_SECRET` | Yes | Secret used to sign JWT tokens |
 
-## Authentication
+## Run Commands
 
-Protected routes require a Bearer token:
+| Command | Description |
+|---|---|
+| `npm run dev` | Start dev server with nodemon |
+| `npm start` | Start server with Node.js |
+
+## API Overview
+
+- Base URL: `http://localhost:5000/api`
+- Root health route: `GET /`
+- Protected endpoints require header:
 
 ```http
-Authorization: Bearer <jwt_token>
+Authorization: Bearer <token>
 ```
 
-Token payload includes:
-- `id`
-- `name`
-- `email`
-- `role` (`user` | `employer` | `admin`)
+### Roles
 
-## Routes
+- `user`: can authenticate and browse jobs
+- `employer`: can authenticate and create/manage own jobs
+- `admin`: defined in user model but no admin-only routes implemented yet
 
-### Health Check
+## Endpoint Reference
 
-- `GET /`
-  - Response: API status message
+### Auth (`/api/auth`)
 
-### Auth Routes (`/api/auth`)
+| Method | Route | Access | Purpose |
+|---|---|---|---|
+| `POST` | `/register` | Public | Register user/employer |
+| `POST` | `/login` | Public | Login and get JWT |
+| `GET` | `/me` | Protected | Get current token user |
 
-- `POST /register`
-  - Required: `name`, `email`, `password`
-  - Optional: `role` (`user` or `employer`)
-  - If `role = employer`, `companyName` is required.
-  - Optional employer fields: `description`, `website`, `location`
-  - Returns: `user`, optional `company`, and `token`
+#### Register request notes
 
-- `POST /login`
-  - Required: `email`, `password`
-  - Returns: `user` and `token`
+- Required: `name`, `email`, `password`
+- Optional: `role` (`user` or `employer`)
+- If `role` is `employer`, `companyName` is required
+- Optional employer fields: `description`, `website`, `location`
 
-- `GET /me` (Protected)
-  - Returns current authenticated user payload from token
+### Jobs (`/api/jobs`)
 
-### Job Routes (`/api/jobs`)
+| Method | Route | Access | Purpose |
+|---|---|---|---|
+| `GET` | `/` | Public | Search/list jobs |
+| `POST` | `/` | Protected (`employer`) | Create a job |
+| `GET` | `/my-jobs` | Protected (`employer`) | List current employer jobs |
+| `PUT` | `/:id` | Protected (`employer`) | Update own job |
+| `DELETE` | `/:id` | Protected (`employer`) | Delete own job |
 
-- `GET /` (Public)
-  - Search and filter jobs
-  - Query params:
-    - `search` (text search on title/description)
-    - `location` (partial match, case-insensitive)
-    - `minSalary`
-    - `maxSalary`
-    - `skills` (comma-separated, e.g. `skills=Node.js,MongoDB`)
-    - `experienceLevel` (`entry` | `mid` | `senior`)
-    - `jobType` (`full-time` | `part-time` | `contract` | `internship`)
-    - `page` (default: `1`)
-    - `limit` (default: `10`)
-    - `sortBy` (`salary` or default latest by `createdAt`)
-  - Returns: `jobs` and `pagination`
+#### Search query params (`GET /api/jobs`)
 
-- `POST /` (Protected, Employer only)
-  - Creates a new job
-  - Employer must already have a company profile (created during employer registration)
+| Query Param | Type | Notes |
+|---|---|---|
+| `search` | string | Text search on `title` and `description` |
+| `location` | string | Case-insensitive partial match |
+| `minSalary` | number | Filters on `salary.min >= minSalary` |
+| `maxSalary` | number | Filters on `salary.min <= maxSalary` |
+| `skills` | string | Comma-separated list, e.g. `Node.js,MongoDB` |
+| `experienceLevel` | enum | `entry`, `mid`, `senior` |
+| `jobType` | enum | `full-time`, `part-time`, `contract`, `internship` |
+| `page` | number | Default `1` |
+| `limit` | number | Default `10` |
+| `sortBy` | string | `salary` or default latest (`createdAt`) |
 
-- `GET /my-jobs` (Protected, Employer only)
-  - Returns jobs posted by the current employer
-
-- `PUT /:id` (Protected, Employer only)
-  - Updates a posted job
-  - Only job owner can update
-
-- `DELETE /:id` (Protected, Employer only)
-  - Deletes a posted job
-  - Only job owner can delete
-
-## Job Model Overview
-
-Main fields for job creation:
-- `title` (string, required)
-- `description` (string, required)
-- `location` (string, required)
-- `salary.min` (number, required)
-- `salary.max` (number, required)
-- `salary.currency` (string, default: `INR`)
-- `skills` (string array)
-- `experienceLevel` (`entry` | `mid` | `senior`, required)
-- `jobType` (`full-time` | `part-time` | `contract` | `internship`, required)
-- `status` (`open` | `closed`, default: `open`)
-
-## Example Requests
+## Request Examples
 
 ### Register Employer
 
@@ -207,21 +168,72 @@ curl -X POST http://localhost:5000/api/auth/login \
   }'
 ```
 
+### Create Job (Employer)
+
+```bash
+curl -X POST http://localhost:5000/api/jobs \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "title": "Backend Developer",
+    "description": "Build scalable APIs",
+    "location": "Bangalore",
+    "salary": { "min": 800000, "max": 1400000, "currency": "INR" },
+    "skills": ["Node.js", "MongoDB", "REST"],
+    "experienceLevel": "mid",
+    "jobType": "full-time"
+  }'
+```
+
 ### Search Jobs
 
 ```bash
 curl "http://localhost:5000/api/jobs?search=node&location=remote&skills=Node.js,MongoDB&page=1&limit=10&sortBy=salary"
 ```
 
-## Security Notes
+## Project Structure
 
-- Rate limiter is applied on `/api/*` with:
+```text
+.
+├── server.js
+├── src
+│   ├── config/          # database connection
+│   ├── controllers/     # route handlers
+│   ├── middlewares/     # auth + global error handler
+│   ├── models/          # mongoose schemas
+│   ├── repositories/    # DB access layer
+│   ├── routes/          # express routes
+│   └── services/        # business logic
+└── package.json
+```
+
+## Security
+
+- `helmet()` for secure HTTP headers
+- `cors()` enabled
+- rate limit on `/api/*`:
   - 100 requests per 15 minutes per IP
-- `helmet()` secures common HTTP headers
-- Passwords are hashed before storage using `bcryptjs`
+- hashed passwords with `bcryptjs`
 
-## Notes
+## Known Gaps
 
-- `Application` model exists but application routes/controllers are not implemented yet.
-- If you accidentally committed real secrets in `.env`, rotate those credentials and use placeholders in shared docs.
+- `Application` model exists but no application routes/controllers yet
+- no test suite configured yet
+- no API docs generator (Swagger/OpenAPI) yet
+
+## Git Ignore and Push
+
+`.gitignore` should include:
+
+```gitignore
+node_modules/
+.env
+```
+
+If these were already committed once, untrack them before push:
+
+```bash
+git rm -r --cached node_modules .env
+git commit -m "chore: stop tracking local-only files"
+```
 
